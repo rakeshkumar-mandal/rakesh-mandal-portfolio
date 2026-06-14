@@ -95,7 +95,15 @@ export default function Hero() {
           <p className="hero-desc">Final-year CSE student passionate about solving logical problems and building user-centric web apps. Strong foundation in Core CS fundamentals, currently exploring MERN stack (Next.js, MongoDB) and continuously grinding C++ DSA.</p>
           <div className="hero-btns">
             <a href="#projects" className="btn-primary" onClick={e => { e.preventDefault(); document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' }); }}>View Projects →</a>
-            <a href="/api/resume/download" className="btn-outline" target="_blank" rel="noreferrer">⬇ Download Resume</a>
+            <a
+              href="https://rakeshkumarmandalportfolio.onrender.com/api/resume/download"
+              className="btn-outline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              ⬇ Download Resume
+            </a>
+
             {/* <a href="#contact" className="btn-ghost" onClick={e => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}>Contact Me</a> */} 
           </div>
         </div>
