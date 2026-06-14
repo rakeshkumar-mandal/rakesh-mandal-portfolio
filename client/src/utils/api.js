@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'https://rakeshkumarmandalportfolio.onrender.com/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 });
