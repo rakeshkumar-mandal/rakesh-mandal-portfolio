@@ -1,6 +1,9 @@
 export default function Resume() {
   const handleDownload = () => {
-    window.open('/api/resume/download', '_blank');
+  window.open(
+    `${import.meta.env.VITE_API_URL}/resume/download`,
+    '_blank'
+  );
   };
 
   return (
