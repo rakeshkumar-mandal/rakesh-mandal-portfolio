@@ -108,7 +108,7 @@ export default function Projects() {
       ) : (
         <div className="proj-grid">
           {displayProjects.map((p, i) => (
-            <div className={`proj-card reveal${i % 3 === 1 ? ' reveal-delay1' : i % 3 === 2 ? ' reveal-delay2' : ''}`} key={p._id}>
+            <div className={`proj-card revealed${i % 3 === 1 ? ' reveal-delay1' : i % 3 === 2 ? ' reveal-delay2' : ''}`} key={p._id}>
               <div className="proj-img" style={{ background: p.gradient }}>
                 <div className="proj-img-inner">{p.emoji}</div>
                 {p.featured && <span className="proj-featured">{p.featuredLabel || 'Featured'}</span>}

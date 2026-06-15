@@ -13,9 +13,9 @@ export default function About() {
           <div className="edu-timeline" style={{ marginTop: 36 }}>
             <div className="section-label" style={{ marginBottom: 20 }}>Education</div>
             {[
-              { year: '2023 — 2027', degree: 'B.Tech — Computer Science & Engineering', school: 'Manav Rachna International Institute Of Research And Studies, Faridabad · CGPA: 8.4/10' },
-              { year: '2022 — 2023', degree: 'Class XII — CBSE Science (PCM)', school: 'Govt Co-Ed Senior Secondary School, New Delhi · 91.4%' },
-              { year: '2020 — 2021', degree: 'Class X — CBSE', school: 'New Bal Vaishali Public School, Delhi · 93.8%' },
+              { year: '2023 — 2027', degree: 'B.Tech — Computer Science & Engineering', school: 'Manav Rachna International Institute Of Research And Studies, Faridabad ' },
+              { year: '2022 — 2023', degree: 'Class XII — CBSE Science (PCM)', school: 'Govt Co-Ed Senior Secondary School, New Delhi ' },
+              { year: '2020 — 2021', degree: 'Class X — CBSE', school: 'New Bal Vaishali Public School, Delhi ' },
             ].map((e, i) => (
               <div className="edu-item" key={i}>
                 <div className="edu-year">{e.year}</div>
