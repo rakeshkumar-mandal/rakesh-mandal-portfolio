@@ -6,10 +6,21 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/projects')
-      .then(res => setProjects(res.data.data || []))
-      .catch(err => console.error('Projects fetch error:', err))
-      .finally(() => setLoading(false));
+    const fetchProjects = async () => {
+      try {
+        const res = await api.get('/projects');
+        setProjects(res.data.data || []);
+      } catch (err) {
+        console.error('Projects fetch error:', err);
+
+        // fallback immediately
+        setProjects(demoProjects);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
   }, []);
 
   // Fallback demo projects when API is unavailable
