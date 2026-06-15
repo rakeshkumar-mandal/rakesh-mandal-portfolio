@@ -2,6 +2,7 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect, useRef } from 'react';
 import profileImg from '../assets/profile.jpg'
+import * as THREE from 'three'
 
 const roles = [
   'MERN Stack Developer',
@@ -40,41 +41,134 @@ export default function Hero() {
 
   // Three.js background
   useEffect(() => {
-    const canvas = document.getElementById('canvas3d');
-    if (!canvas || !window.THREE) return;
-    const THREE = window.THREE;
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    const canvas = document.getElementById("canvas3d");
+    if (!canvas) return;
+
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+    });
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 5;
-    const geo = new THREE.BufferGeometry();
+
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+    camera.position.z = 30;
+
+  // Particles
     const count = 3000;
+
+    const geometry = new THREE.BufferGeometry();
+
     const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 30;
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ color: 0x00f5ff, size: 0.04, transparent: true, opacity: 0.6 });
-    const stars = new THREE.Points(geo, mat);
+    const colors = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 100;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 80;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 60;
+
+    // Cyan + Purple particles
+      const isCyan = Math.random() > 0.5;
+
+      colors[i * 3] = isCyan ? 0 : 0.49;
+      colors[i * 3 + 1] = isCyan ? 0.96 : 0.23;
+      colors[i * 3 + 2] = isCyan ? 1 : 0.93;
+    }
+
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(positions, 3)
+    );
+
+    geometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(colors, 3)
+    );
+
+    const material = new THREE.PointsMaterial({
+      size: 0.22,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.7,
+      sizeAttenuation: true,
+    });
+
+    const stars = new THREE.Points(geometry, material);
+
     scene.add(stars);
-    let frame;
+
+    // Mouse Follow Effect
+    let mouseX = 0;
+    let mouseY = 0;
+
+    const handleMouseMove = (e) => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+
+    let frameId;
+
     const animate = () => {
-      frame = requestAnimationFrame(animate);
-      stars.rotation.x += 0.0003;
-      stars.rotation.y += 0.0005;
+      frameId = requestAnimationFrame(animate);
+
+      // Auto Rotation
+      stars.rotation.y += 0.0006;
+      stars.rotation.x += 0.0002;
+
+      // Cursor Follow Rotation
+      stars.rotation.y += mouseX * 0.0006;
+      stars.rotation.x += mouseY * 0.0004;
+
       renderer.render(scene, camera);
     };
+
     animate();
-    const resize = () => {
+
+    const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
+
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     };
-    window.addEventListener('resize', resize);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize); renderer.dispose(); };
-  }, []);
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+    cancelAnimationFrame(frameId);
+
+    document.removeEventListener(
+      "mousemove",
+      handleMouseMove
+    );
+
+    window.removeEventListener(
+      "resize",
+      handleResize
+    );
+
+    geometry.dispose();
+    material.dispose();
+    renderer.dispose();
+  };
+}, []);
 
   return (
+  <>
+    <canvas id="canvas3d"></canvas>
+
     <section className="hero" style={{ maxWidth: '100%', paddingLeft: '7%', paddingRight: '7%' }}>
       <div className="hero-grid" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div>
@@ -135,5 +229,6 @@ export default function Hero() {
         </div>
       </div>
     </section>
+  </>
   );
 }

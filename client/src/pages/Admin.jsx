@@ -10,6 +10,12 @@ const TABS = [
   { id: 'analytics', label: '📈 Analytics' },
 ];
 
+const EMPTY_PROJECT = {
+  title: '', description: '', emoji: '🚀',
+  liveUrl: '', githubUrl: '', tags: '',
+  featured: false, featuredLabel: '',
+};
+
 export default function Admin() {
   const [activeTab,      setActiveTab]      = useState('overview');
   const [projects,       setProjects]       = useState([]);
@@ -18,19 +24,50 @@ export default function Admin() {
   const [loading,        setLoading]        = useState(true);
   const [sidebarOpen,    setSidebarOpen]    = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
-  const [addStatus,      setAddStatus]      = useState(null); // null | 'loading' | 'success' | 'error'
-  const [newProject,     setNewProject]     = useState({
-    title: '', description: '', emoji: '🚀',
-    liveUrl: '', githubUrl: '', featured: false, featuredLabel: '',
-  });
+  const [editingProject, setEditingProject] = useState(null);
+  const [addStatus,      setAddStatus]      = useState(null);
+  const [newProject,     setNewProject]     = useState(EMPTY_PROJECT);
 
   const { user, logout } = useAuth();
   const navigate         = useNavigate();
 
   useEffect(() => { loadAll(); }, []);
 
-  /* close sidebar whenever tab changes on mobile */
   const switchTab = id => { setActiveTab(id); setSidebarOpen(false); };
+
+  /* ── helpers ── */
+  const resetForm = () => {
+    setNewProject(EMPTY_PROJECT);
+    setEditingProject(null);
+    setAddStatus(null);
+  };
+
+  const openAddForm = () => {
+    resetForm();
+    setShowAddProject(true);
+  };
+
+  const closeForm = () => {
+    resetForm();
+    setShowAddProject(false);
+  };
+
+  const openEditForm = (p) => {
+    setEditingProject(p);
+    setNewProject({
+      title:        p.title        || '',
+      description:  p.description  || '',
+      emoji:        p.emoji        || '🚀',
+      liveUrl:      p.liveUrl      || '',
+      githubUrl:    p.githubUrl    || '',
+      tags:         p.tags?.map(t => t.name).join(', ') || '',
+      featured:     p.featured     || false,
+      featuredLabel:p.featuredLabel|| '',
+    });
+    setAddStatus(null);
+    setShowAddProject(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   /* ── data ── */
   const loadAll = async () => {
@@ -71,37 +108,62 @@ export default function Admin() {
     setMessages(m => m.filter(x => x._id !== id));
   };
 
-  const addProject = async e => {
+  /* tags string → array with auto color */
+  const parseTags = (tagsStr) =>
+    tagsStr
+      .split(',')
+      .map(tag => {
+        const name = tag.trim();
+        if (!name) return null;
+        let type = 'cyan';
+        const n = name.toLowerCase();
+        if (n.includes('node') || n.includes('express')) type = 'violet';
+        if (n.includes('mongo'))                          type = 'green';
+        if (n.includes('ai') || n.includes('gemini'))    type = 'orange';
+        return { name, type };
+      })
+      .filter(Boolean);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setAddStatus('loading');
     try {
-      const res = await api.post('/projects', {
+      const payload = {
         ...newProject,
-        tags: [{ name: 'React', type: 'cyan' }, { name: 'Node.js', type: 'violet' }],
+        tags:     parseTags(newProject.tags),
         gradient: 'linear-gradient(135deg,#0a1628,#1a0540)',
-      });
-      setProjects(p => [res.data.data, ...p]);
-      setNewProject({ title:'', description:'', emoji:'🚀', liveUrl:'', githubUrl:'', featured:false, featuredLabel:'' });
+      };
+
+      if (editingProject) {
+        const res = await api.put(`/projects/${editingProject._id}`, payload);
+        setProjects(prev =>
+          prev.map(p => p._id === editingProject._id ? res.data.data : p)
+        );
+      } else {
+        const res = await api.post('/projects', payload);
+        setProjects(prev => [res.data.data, ...prev]);
+      }
+
       setAddStatus('success');
-      setTimeout(() => { setAddStatus(null); setShowAddProject(false); }, 2000);
-    } catch { setAddStatus('error'); }
+      setTimeout(() => closeForm(), 2000);
+    } catch (err) {
+      console.error(err);
+      setAddStatus('error');
+    }
   };
 
   const unread = messages.filter(m => !m.isRead).length;
 
-  /* ────────────────────────────── RENDER ────────────────────────────── */
+  /* ─────────────────────────── RENDER ─────────────────────────── */
   return (
     <div className="admin-root">
 
-      {/* ░░ OVERLAY — mobile only ░░ */}
+      {/* OVERLAY */}
       {sidebarOpen && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* ░░ HAMBURGER — mobile only ░░ */}
+      {/* HAMBURGER */}
       <button
         className="mobile-menu-btn"
         onClick={() => setSidebarOpen(o => !o)}
@@ -110,13 +172,10 @@ export default function Admin() {
         {sidebarOpen ? '✕' : '☰'}
       </button>
 
-      {/* ░░ SIDEBAR ░░ */}
+      {/* SIDEBAR */}
       <aside className={`admin-sidebar${sidebarOpen ? ' show' : ''}`}>
-
-        {/* Logo */}
         <div className="admin-logo">⚡ Admin Panel</div>
 
-        {/* Nav */}
         <ul className="admin-nav">
           {TABS.map(t => (
             <li key={t.id}>
@@ -139,14 +198,13 @@ export default function Admin() {
           </li>
         </ul>
 
-        {/* User info */}
         <div className="sidebar-footer">
           <div className="sidebar-footer-label">Logged in as</div>
           <div className="sidebar-footer-email">{user?.email}</div>
         </div>
       </aside>
 
-      {/* ░░ MAIN ░░ */}
+      {/* MAIN */}
       <main className="admin-main">
 
         {/* Top bar */}
@@ -157,7 +215,6 @@ export default function Admin() {
           <a href="/" className="back-link">← Portfolio</a>
         </header>
 
-        {/* ── Content ── */}
         {loading ? (
           <div className="loading-state">Loading dashboard data…</div>
         ) : (
@@ -166,15 +223,14 @@ export default function Admin() {
             {/* ════ OVERVIEW ════ */}
             {activeTab === 'overview' && (
               <>
-                {/* Stat cards */}
                 <div className="stat-cards">
                   {[
-                    { num: projects.length,              label: 'Projects'       },
-                    { num: messages.length,              label: 'Messages'       },
-                    { num: unread,                       label: 'Unread'         },
-                    { num: analytics?.totalVisits  || 0, label: 'Total Visits'   },
-                    { num: analytics?.todayVisits  || 0, label: "Today's Visits" },
-                    { num: analytics?.uniqueVisitors||0, label: 'Unique IPs'     },
+                    { num: projects.length,               label: 'Projects'       },
+                    { num: messages.length,               label: 'Messages'       },
+                    { num: unread,                        label: 'Unread'         },
+                    { num: analytics?.totalVisits   || 0, label: 'Total Visits'   },
+                    { num: analytics?.todayVisits   || 0, label: "Today's Visits" },
+                    { num: analytics?.uniqueVisitors|| 0, label: 'Unique IPs'     },
                   ].map(s => (
                     <div className="stat-card" key={s.label}>
                       <div className="stat-card-num">{s.num}</div>
@@ -183,31 +239,21 @@ export default function Admin() {
                   ))}
                 </div>
 
-                {/* Recent messages */}
                 <div className="admin-card">
                   <div className="admin-card-title">Recent Messages</div>
                   {messages.length === 0
                     ? <p className="empty-state">No messages yet.</p>
-                    : (
-                      <>
-                        {/* Mobile: cards */}
+                    : <>
                         <div className="mobile-cards">
                           {messages.slice(0, 5).map(m => (
-                            <MessageCard
-                              key={m._id} m={m}
-                              onRead={markRead} onDelete={deleteMessage}
-                            />
+                            <MessageCard key={m._id} m={m} onRead={markRead} onDelete={deleteMessage} />
                           ))}
                         </div>
-                        {/* Desktop: table */}
                         <div className="table-wrapper desktop-table">
                           <table className="admin-table">
                             <thead>
                               <tr>
-                                <th>From</th>
-                                <th>Subject</th>
-                                <th>Date</th>
-                                <th>Status</th>
+                                <th>From</th><th>Subject</th><th>Date</th><th>Status</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -230,7 +276,6 @@ export default function Admin() {
                           </table>
                         </div>
                       </>
-                    )
                   }
                 </div>
               </>
@@ -239,27 +284,33 @@ export default function Admin() {
             {/* ════ PROJECTS ════ */}
             {activeTab === 'projects' && (
               <>
+                {/* Add / Cancel toggle */}
                 <button
                   className="btn-primary mb20"
-                  onClick={() => setShowAddProject(p => !p)}
+                  onClick={showAddProject ? closeForm : openAddForm}
                 >
                   {showAddProject ? '✕ Cancel' : '+ Add New Project'}
                 </button>
 
-                {/* Add form */}
+                {/* ── Add / Edit form ── */}
                 {showAddProject && (
                   <div className="admin-card mb20">
-                    <div className="admin-card-title">Add New Project</div>
+                    <div className="admin-card-title">
+                      {editingProject ? '✏️ Edit Project' : '➕ Add New Project'}
+                    </div>
 
                     {addStatus === 'success' && (
-                      <div className="alert alert-success">✅ Project added successfully!</div>
+                      <div className="alert alert-success">
+                        {editingProject ? '✅ Project updated!' : '✅ Project added!'}
+                      </div>
                     )}
                     {addStatus === 'error' && (
-                      <div className="alert alert-error">❌ Failed to add project.</div>
+                      <div className="alert alert-error">❌ Something went wrong. Try again.</div>
                     )}
 
-                    <form onSubmit={addProject}>
-                      {/* Title + Emoji — auto-stack on mobile */}
+                    <form onSubmit={handleSubmit}>
+
+                      {/* Title + Emoji */}
                       <div className="form-grid-2 mb14">
                         <div className="form-group">
                           <label className="form-label">PROJECT TITLE *</label>
@@ -282,6 +333,7 @@ export default function Admin() {
                         </div>
                       </div>
 
+                      {/* Description */}
                       <div className="form-group mb14">
                         <label className="form-label">DESCRIPTION *</label>
                         <textarea
@@ -294,7 +346,7 @@ export default function Admin() {
                         />
                       </div>
 
-                      {/* URLs — stack on mobile */}
+                      {/* URLs */}
                       <div className="form-grid-half mb14">
                         <div className="form-group">
                           <label className="form-label">LIVE URL</label>
@@ -316,6 +368,21 @@ export default function Admin() {
                         </div>
                       </div>
 
+                      {/* Tags */}
+                      <div className="form-group mb14">
+                        <label className="form-label">TAGS (comma separated)</label>
+                        <input
+                          className="form-input"
+                          value={newProject.tags}
+                          onChange={e => setNewProject(p => ({ ...p, tags: e.target.value }))}
+                          placeholder="React, Node.js, MongoDB, Express"
+                        />
+                        <div style={{ fontSize: 12, color: 'var(--muted2)', marginTop: 6 }}>
+                          💡 Node/Express → violet · Mongo → green · AI/Gemini → orange · others → cyan
+                        </div>
+                      </div>
+
+                      {/* Featured */}
                       <div className="form-flex mb20">
                         <input
                           type="checkbox"
@@ -330,27 +397,43 @@ export default function Admin() {
                             style={{ width: 180 }}
                             value={newProject.featuredLabel}
                             onChange={e => setNewProject(p => ({ ...p, featuredLabel: e.target.value }))}
-                            placeholder="Badge label"
+                            placeholder="Badge label e.g. Featured"
                           />
                         )}
                       </div>
 
-                      <button
-                        type="submit"
-                        className="btn-primary"
-                        disabled={addStatus === 'loading'}
-                      >
-                        {addStatus === 'loading' ? '⏳ Adding…' : '+ Add Project'}
-                      </button>
+                      {/* Submit */}
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button
+                          type="submit"
+                          className="btn-primary"
+                          disabled={addStatus === 'loading'}
+                        >
+                          {addStatus === 'loading'
+                            ? '⏳ Saving…'
+                            : editingProject ? '💾 Update Project' : '+ Add Project'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-outline"
+                          onClick={closeForm}
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </form>
                   </div>
                 )}
 
-                {/* All projects */}
+                {/* ── All projects ── */}
                 <div className="admin-card">
                   <div className="admin-card-title">All Projects ({projects.length})</div>
 
-                  {/* Mobile: project cards */}
+                  {projects.length === 0 && (
+                    <p className="empty-state">No projects yet. Add your first one above!</p>
+                  )}
+
+                  {/* Mobile cards */}
                   <div className="mobile-cards">
                     {projects.map(p => (
                       <div key={p._id} className="project-mobile-card">
@@ -360,10 +443,24 @@ export default function Admin() {
                             <button
                               className={`btn-sm ${p.isVisible ? 'btn-sm-primary' : 'btn-sm-outline'}`}
                               onClick={() => toggleVisible(p._id, p.isVisible)}
+                              title={p.isVisible ? 'Hide' : 'Show'}
                             >
                               {p.isVisible ? '👁' : '🙈'}
                             </button>
-                            <button className="btn-danger" onClick={() => deleteProject(p._id)}>🗑</button>
+                            <button
+                              className="btn-sm btn-sm-primary"
+                              onClick={() => openEditForm(p)}
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="btn-danger"
+                              onClick={() => deleteProject(p._id)}
+                              title="Delete"
+                            >
+                              🗑
+                            </button>
                           </div>
                         </div>
                         <div className="muted2 fs12 mb8">{p.description?.slice(0, 80)}…</div>
@@ -371,15 +468,13 @@ export default function Admin() {
                           {p.tags?.slice(0, 3).map(t => (
                             <span key={t.name} className={`proj-tag tag-${t.type}`}>{t.name}</span>
                           ))}
-                          {p.featured && (
-                            <span className="badge-read">⭐ {p.featuredLabel}</span>
-                          )}
+                          {p.featured && <span className="badge-read">⭐ {p.featuredLabel}</span>}
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Desktop: table */}
+                  {/* Desktop table */}
                   <div className="table-wrapper desktop-table">
                     <table className="admin-table">
                       <thead>
@@ -396,8 +491,8 @@ export default function Admin() {
                           <tr key={p._id}>
                             <td>
                               <div className="fw600 fs15">{p.emoji} {p.title}</div>
-                              <div className="muted2 fs12 mt4" style={{ maxWidth: 300 }}>
-                                {p.description?.slice(0, 70)}…
+                              <div className="muted2 fs12 mt4" style={{ maxWidth: 280 }}>
+                                {p.description?.slice(0, 65)}…
                               </div>
                             </td>
                             <td>
@@ -424,9 +519,20 @@ export default function Admin() {
                               </button>
                             </td>
                             <td>
-                              <button className="btn-danger" onClick={() => deleteProject(p._id)}>
-                                🗑 Delete
-                              </button>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button
+                                  className="btn-sm btn-sm-primary"
+                                  onClick={() => openEditForm(p)}
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  className="btn-danger"
+                                  onClick={() => deleteProject(p._id)}
+                                >
+                                  🗑 Delete
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -447,11 +553,8 @@ export default function Admin() {
                 {messages.length === 0
                   ? <p className="empty-state">No messages yet. Share your portfolio!</p>
                   : messages.map(m => (
-                    <MessageCard
-                      key={m._id} m={m}
-                      onRead={markRead} onDelete={deleteMessage}
-                    />
-                  ))
+                      <MessageCard key={m._id} m={m} onRead={markRead} onDelete={deleteMessage} />
+                    ))
                 }
               </div>
             )}
@@ -461,10 +564,10 @@ export default function Admin() {
               <>
                 <div className="stat-cards">
                   {[
-                    { num: analytics?.totalVisits    || 0, label: 'Total Visits'  },
-                    { num: analytics?.todayVisits    || 0, label: 'Today'         },
-                    { num: analytics?.weekVisits     || 0, label: 'This Week'     },
-                    { num: analytics?.uniqueVisitors || 0, label: 'Unique IPs'    },
+                    { num: analytics?.totalVisits    || 0, label: 'Total Visits' },
+                    { num: analytics?.todayVisits    || 0, label: 'Today'        },
+                    { num: analytics?.weekVisits     || 0, label: 'This Week'    },
+                    { num: analytics?.uniqueVisitors || 0, label: 'Unique IPs'   },
                   ].map(s => (
                     <div className="stat-card" key={s.label}>
                       <div className="stat-card-num">{s.num}</div>
@@ -476,7 +579,7 @@ export default function Admin() {
                 <div className="admin-card">
                   <div className="admin-card-title">Recent Visits (Last 20)</div>
 
-                  {/* Mobile: visit cards */}
+                  {/* Mobile */}
                   <div className="mobile-cards">
                     {(analytics?.recentVisits || []).map((v, i) => (
                       <div key={i} className="visit-mobile-card">
@@ -491,14 +594,12 @@ export default function Admin() {
                     ))}
                   </div>
 
-                  {/* Desktop: table */}
+                  {/* Desktop */}
                   <div className="table-wrapper desktop-table">
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th>Page</th>
-                          <th>IP Address</th>
-                          <th>Time</th>
+                          <th>Page</th><th>IP Address</th><th>Time</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -523,7 +624,7 @@ export default function Admin() {
   );
 }
 
-/* ── Reusable message card ── */
+/* ── Message Card Component ── */
 function MessageCard({ m, onRead, onDelete }) {
   return (
     <div className={`message-card${!m.isRead ? ' message-card-new' : ''}`}>
