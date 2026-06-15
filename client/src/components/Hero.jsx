@@ -10,6 +10,7 @@ const roles = [
   'Tech Enthusiast',
   'Problem Solver (100+ DSA)',
   'Final Year CSE Student',
+  'Full Stack Web Developer',
 ];
 
 export default function Hero() {
