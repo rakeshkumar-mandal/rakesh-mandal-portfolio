@@ -2,7 +2,7 @@
 
 A full-stack developer portfolio built from scratch with a dark glassmorphic UI, Three.js particle background, and a complete custom-built admin dashboard — not a template.
 
-🔗 **Live Site**: [your-portfolio-url.vercel.app](https://rakeshkumarmandal.vercel.app/)
+🔗 **Live Site**: [https://rakeshkumarmandal.vercel.app/](https://rakeshkumarmandal.vercel.app/)
 🔗 **GitHub**: [github.com/rakeshkumar-mandal](https://github.com/rakeshkumar-mandal)
 📧 **Contact**: rakeshmandaltech@gmail.com
 💼 **LinkedIn**: [linkedin.com/in/rakesh-kumar-mandal](https://www.linkedin.com/in/rakesh-kumar-mandal/)
